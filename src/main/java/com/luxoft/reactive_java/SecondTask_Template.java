@@ -3,6 +3,7 @@ package com.luxoft.reactive_java;
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.Single;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.observables.ConnectableObservable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
@@ -56,11 +57,11 @@ public class SecondTask_Template {
 //        fifth();
 //        sixth();
 //        seventh();
-        eighth();
+//        eighth();
 //        ninth();
 //        tenth();
 //        eleventh();
-//        twelfth();
+        twelfth();
     }
 
     // С помощью groupBy() показать по-отдельности все депозиты и все снятия
@@ -161,8 +162,10 @@ public class SecondTask_Template {
                     emitter.onComplete();
                 }).publish().refCount();
 
-        Observable.zip(transactions, approvals, (bigDecimal, aBoolean) -> aBoolean ? Observable.just(bigDecimal) : Observable.empty())
-                .flatMap(o -> o)
+//        Observable.zip(transactions, approvals, (bigDecimal, aBoolean) -> aBoolean ? Observable.just(bigDecimal) : Observable.empty())
+//                .flatMap(o -> o)
+//                .subscribe(System.out::println);
+        Observable.zip(transactions, approvals, (bigDecimal, approved) -> (bigDecimal + "-" + (approved ? "Approved" : "Denied")))
                 .subscribe(System.out::println);
     }
 
@@ -196,7 +199,8 @@ public class SecondTask_Template {
                     emitter.onComplete();
                 }).subscribeOn(Schedulers.computation()).publish().refCount();
 
-        throw new RuntimeException("Not implemented");
+        Observable.combineLatest(localCache, clients, (s1, s2) -> (s1 + "-" + s2))
+                .subscribe(System.out::println);
     }
 
     // С помощью replay() заново "проиграть" предыдущие операции, когда подписчик запоздал.
@@ -216,17 +220,35 @@ public class SecondTask_Template {
                     emitter.onComplete();
                 }).replay();
 
-        throw new RuntimeException("Not implemented");
+        Disposable subscribtion1 = localCache.subscribe(v -> System.out.println("Subscriber 1: " + v));
+        Thread.sleep(3000);
+        localCache.connect();
+
+        Disposable subscribtion2 = localCache.subscribe(v -> System.out.println("Subscriber 2: " + v));
     }
 
     // Превратить Observable в PublishSubject и удостовериться, что он действительно
     // способен выполнять банковские операции
     private static void eleventh() {
-        throw new RuntimeException("Not implemented");
+        PublishSubject<BigDecimal> subject = PublishSubject.create();
+
+        subject.subscribe(v -> System.out.println("PublisherSubject: " + v));
+
+        transactions.subscribe(subject::onNext);
+
+        subject.onComplete();
     }
 
     // С помощью ReplaySubject воспроизвести все операции для припозднившихся подписчиков.
     private static void twelfth() {
-        throw new RuntimeException("Not implemented");
+        ReplaySubject<BigDecimal> subject = ReplaySubject.create();
+
+        subject.subscribe(v -> System.out.println("ReplaySubject 1: " + v));
+
+        transactions.subscribe(subject::onNext);
+
+        subject.onComplete();
+
+        subject.subscribe(v -> System.out.println("ReplaySubject 2: " + v));
     }
 }
